@@ -15,7 +15,7 @@ namespace {
 
     void showImage(CCNode* parent, int percent, bool completed = false) {
         if (!parent) {
-            log::error("Death Quote: no scene available to display message");
+            log::error("Death Quote: display parent is null");
             return;
         }
 
@@ -31,7 +31,6 @@ namespace {
                                        (winSize.height * 0.30f) / size.height);
                 sprite->setScale(scale);
                 sprite->setPosition({winSize.width / 2.f, winSize.height / 2.f});
-                sprite->setZOrder(10000);
                 parent->addChild(sprite, 10000);
                 sprite->runAction(CCSequence::create(
                     CCDelayTime::create(1.1f),
@@ -39,22 +38,20 @@ namespace {
                     CCRemoveSelf::create(),
                     nullptr
                 ));
-                log::info("Death Quote: displayed image for {}%", percent);
+                log::info("Death Quote: image displayed, percent={}, completed={}", percent, completed);
                 return;
             }
-            log::error("Death Quote: image loaded with invalid size");
+            log::error("Death Quote: loaded image has invalid dimensions");
         } else {
             log::error("Death Quote: image asset failed to load");
         }
 
-        // Visible text fallback: this also confirms the death hook and scene placement work.
         auto label = CCLabelTTF::create(
             completed ? "LEVEL COMPLETE!" : fmt::format("YOU DIED AT {}%", percent).c_str(),
             "Arial", 30.f
         );
         if (label) {
             label->setPosition({winSize.width / 2.f, winSize.height / 2.f});
-            label->setZOrder(10001);
             parent->addChild(label, 10001);
             label->runAction(CCSequence::create(
                 CCDelayTime::create(1.1f),
@@ -62,37 +59,26 @@ namespace {
                 CCRemoveSelf::create(),
                 nullptr
             ));
+            log::info("Death Quote: fallback text displayed");
+        } else {
+            log::error("Death Quote: failed to create fallback label");
         }
     }
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
-    struct Fields {
-        bool gameplayHasStarted = false;
-    };
-
-    void update(float dt) {
-        PlayLayer::update(dt);
-        if (m_gameState.m_levelTime > 0.f) {
-            m_fields->gameplayHasStarted = true;
-        }
-    }
-
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        bool show = player == m_player1 && m_fields->gameplayHasStarted;
-        int percent = show ? getCurrentPercent() : 0;
-
+        // Show before the original handler can change the active scene or player state.
+        int percent = getCurrentPercent();
+        auto scene = CCDirector::sharedDirector()->getRunningScene();
+        log::info("Death Quote: destroyPlayer hook called at {}%", percent);
+        showImage(scene ? scene : this, percent);
         PlayLayer::destroyPlayer(player, object);
-
-        if (show) {
-            auto scene = CCDirector::sharedDirector()->getRunningScene();
-            showImage(scene, percent);
-        }
     }
 
     void levelComplete() {
         auto scene = CCDirector::sharedDirector()->getRunningScene();
-        showImage(scene, getCurrentPercent(), true);
+        showImage(scene ? scene : this, getCurrentPercent(), true);
         PlayLayer::levelComplete();
     }
 };
