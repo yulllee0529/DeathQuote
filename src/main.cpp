@@ -45,17 +45,22 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        bool shouldShow = player == m_player1;
-        int percent = shouldShow ? getCurrentPercent() : 0;
+        // Only react to the main player's actual death callback.
+        // Ignore callbacks for other players/objects.
+        if (player != m_player1) {
+            PlayLayer::destroyPlayer(player, object);
+            return;
+        }
 
+        int percent = getCurrentPercent();
         PlayLayer::destroyPlayer(player, object);
 
-        if (!shouldShow || !m_uiLayer) return;
+        if (!m_uiLayer) return;
         showImage(m_uiLayer, imageForPercent(percent));
     }
 
     void levelComplete() {
         PlayLayer::levelComplete();
-        showImage(m_uiLayer, "level_complete_gg.png");
+        if (m_uiLayer) showImage(m_uiLayer, "level_complete_gg.png");
     }
 };
