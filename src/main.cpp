@@ -40,37 +40,9 @@ namespace {
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
-    struct Fields {
-        bool deathQuoteHasStarted = false;
-    };
-
-    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
-        m_fields->deathQuoteHasStarted = false;
-        return true;
-    }
-
-    void update(float dt) {
-        PlayLayer::update(dt);
-        // Wait for the opening countdown/start animation to finish.
-        if (m_player1 && !m_player1->m_isDead) {
-            auto layer = this;
-            if (layer->m_gameState.m_levelTime > 0.f) {
-                m_fields->deathQuoteHasStarted = true;
-            }
-        }
-    }
-
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        if (player != m_player1) {
-            PlayLayer::destroyPlayer(player, object);
-            return;
-        }
-
-        int percent = getCurrentPercent();
-        bool showQuote = m_fields->deathQuoteHasStarted;
-        if (showQuote && m_uiLayer) {
-            showImage(m_uiLayer, imageForPercent(percent));
+        if (player == m_player1 && m_uiLayer && m_gameState.m_levelTime > 0.f) {
+            showImage(m_uiLayer, imageForPercent(getCurrentPercent()));
         }
         PlayLayer::destroyPlayer(player, object);
     }
