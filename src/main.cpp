@@ -68,17 +68,16 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Show before the original handler can change the active scene or player state.
         int percent = getCurrentPercent();
         auto scene = CCDirector::sharedDirector()->getRunningScene();
         log::info("Death Quote: destroyPlayer hook called at {}%", percent);
-        showImage(scene ? scene : this, percent);
+        showImage(static_cast<CCNode*>(scene), percent);
         PlayLayer::destroyPlayer(player, object);
     }
 
     void levelComplete() {
         auto scene = CCDirector::sharedDirector()->getRunningScene();
-        showImage(scene ? scene : this, getCurrentPercent(), true);
+        showImage(static_cast<CCNode*>(scene), getCurrentPercent(), true);
         PlayLayer::levelComplete();
     }
 };
