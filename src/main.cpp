@@ -15,22 +15,22 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Only show one message for the main player, avoiding duplicate messages in dual mode.
+        // Show a single message for player 1, including in dual mode.
         bool shouldShow = player == m_player1;
         int percent = shouldShow ? getCurrentPercent() : 0;
 
         PlayLayer::destroyPlayer(player, object);
 
-        if (!shouldShow) return;
+        if (!shouldShow || !m_uiLayer) return;
 
         auto label = CCLabelBMFont::create(messageForPercent(percent), "bigFont.fnt");
         if (!label) return;
 
-        label->setPosition({m_mainLayer->getContentSize().width / 2.0f,
-                            m_mainLayer->getContentSize().height / 2.0f});
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+        label->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
         label->setScale(0.8f);
         label->setZOrder(10000);
-        m_mainLayer->addChild(label);
+        m_uiLayer->addChild(label);
 
         auto fadeAndRemove = CCSequence::create(
             CCDelayTime::create(1.1f),
