@@ -16,7 +16,7 @@ namespace {
     void showImage(CCNode* parent, const char* filename) {
         if (!parent) return;
 
-        auto path = Mod::get()->getResourcesDir() / "Resources" / filename;
+        auto path = Mod::get()->getResourcesDir() / filename;
         auto sprite = CCSprite::create(path.string().c_str());
         if (!sprite) {
             log::error("Death Quote: failed to load image at '{}'", path.string());
