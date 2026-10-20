@@ -40,6 +40,18 @@ namespace {
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
+    float m_deathQuoteElapsed = 0.f;
+
+    void update(float dt) {
+        PlayLayer::update(dt);
+        m_deathQuoteElapsed += dt;
+    }
+
+    void resetLevel() {
+        m_deathQuoteElapsed = 0.f;
+        PlayLayer::resetLevel();
+    }
+
     void destroyPlayer(PlayerObject* player, GameObject* object) {
         if (player != m_player1) {
             PlayLayer::destroyPlayer(player, object);
@@ -47,11 +59,12 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         }
 
         int percent = getCurrentPercent();
+        bool pastStartDelay = m_deathQuoteElapsed >= 0.1f;
         PlayLayer::destroyPlayer(player, object);
 
-        // Starting/restarting an attempt can call destroyPlayer at 0%.
-        // Only show a quote after the run has actually progressed.
-        if (percent <= 0) return;
+        // Suppress the startup/reset callback for the first 0.1 seconds.
+        // Do not gate on integer percent: real deaths at 0.1% can round to 0%.
+        if (!pastStartDelay) return;
 
         if (m_uiLayer) showImage(m_uiLayer, imageForPercent(percent));
     }
