@@ -4,64 +4,56 @@
 using namespace geode::prelude;
 
 namespace {
-    const char* messageForPercent(int percent) {
-        if (percent <= 10) return "\uac1c\ubabb\ud558\ub124";
-        if (percent <= 30) return "\uac70\uae30\uc11c \uc8fd\ub0d0";
-        if (percent <= 50) return "\uc5f0\uc2b5 \ub354 \ud558\uc138\uc694";
-        if (percent <= 80) return "\uc880\ub9cc \ub354 \ud558\uba74 \ub420 \uac83 \uac19\uc740\ub370";
-        if (percent <= 90) return "\uc548\ud0c0\uae5d\ub124\uc694";
-        return "\uc18c\uace0\uae30";
+    const char* imageForPercent(int percent) {
+        if (percent <= 10) return "death_0_10.png";
+        if (percent <= 30) return "death_11_30.png";
+        if (percent <= 50) return "death_31_50.png";
+        if (percent <= 80) return "death_51_80.png";
+        if (percent <= 90) return "death_81_90.png";
+        return "death_91_99.png";
+    }
+
+    void showImage(CCNode* parent, const char* filename) {
+        if (!parent) return;
+
+        auto sprite = CCSprite::create(filename);
+        if (!sprite) {
+            log::error("Death Quote: failed to load image '{}'", filename);
+            return;
+        }
+
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+        float maxWidth = winSize.width * 0.78f;
+        float maxHeight = winSize.height * 0.30f;
+        float scale = std::min(maxWidth / sprite->getContentSize().width,
+                               maxHeight / sprite->getContentSize().height);
+        sprite->setScale(scale);
+        sprite->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
+        sprite->setZOrder(10000);
+        parent->addChild(sprite);
+
+        sprite->runAction(CCSequence::create(
+            CCDelayTime::create(1.1f),
+            CCFadeOut::create(0.35f),
+            CCRemoveSelf::create(),
+            nullptr
+        ));
     }
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Show a single message for player 1, including in dual mode.
         bool shouldShow = player == m_player1;
         int percent = shouldShow ? getCurrentPercent() : 0;
 
         PlayLayer::destroyPlayer(player, object);
 
         if (!shouldShow || !m_uiLayer) return;
-
-        auto label = CCLabelBMFont::create(messageForPercent(percent), "bigFont.fnt");
-        if (!label) return;
-
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        label->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
-        label->setScale(0.8f);
-        label->setZOrder(10000);
-        m_uiLayer->addChild(label);
-
-        auto fadeAndRemove = CCSequence::create(
-            CCDelayTime::create(1.1f),
-            CCFadeOut::create(0.35f),
-            CCRemoveSelf::create(),
-            nullptr
-        );
-        label->runAction(fadeAndRemove);
+        showImage(m_uiLayer, imageForPercent(percent));
     }
 
     void levelComplete() {
         PlayLayer::levelComplete();
-
-        if (!m_uiLayer) return;
-        auto label = CCLabelTTF::create("GG", "Arial", 36.0f);
-        if (!label) return;
-
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        label->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
-        label->setScale(0.8f);
-        label->setZOrder(10000);
-        m_uiLayer->addChild(label);
-
-        auto fadeAndRemove = CCSequence::create(
-            CCDelayTime::create(1.1f),
-            CCFadeOut::create(0.35f),
-            CCRemoveSelf::create(),
-            nullptr
-        );
-        label->runAction(fadeAndRemove);
+        showImage(m_uiLayer, "level_complete_gg.png");
     }
 };
-
