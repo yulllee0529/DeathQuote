@@ -15,13 +15,16 @@ namespace {
 
     void showImage(CCNode* parent, CCSprite* sprite) {
         if (!parent || !sprite) {
-            log::error("Death Quote: could not create quote sprite");
+            log::error("Death Quote: failed to create image or find scene");
             return;
         }
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         auto size = sprite->getContentSize();
-        if (size.width <= 0.f || size.height <= 0.f) return;
+        if (size.width <= 0.f || size.height <= 0.f) {
+            sprite->release();
+            return;
+        }
 
         float scale = std::min((winSize.width * 0.78f) / size.width,
                                (winSize.height * 0.30f) / size.height);
@@ -41,27 +44,53 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     struct Fields {
+        // True only after the current attempt has actually started advancing.
         bool gameplayHasStarted = false;
+        // Prevent duplicate messages during the same death/reset sequence.
+        bool quoteShownThisAttempt = false;
     };
 
     void update(float dt) {
         PlayLayer::update(dt);
-        // Remember that the level has genuinely started. Do not clear this in resetLevel:
-        // resetLevel can also be part of the death/retry flow.
+
         if (m_gameState.m_levelTime > 0.f) {
-            m_fields->gameplayHasStarted = true;
+            // Reset the per-attempt guard once, when a new attempt starts.
+            if (!m_fields->gameplayHasStarted) {
+                m_fields->gameplayHasStarted = true;
+                m_fields->quoteShownThisAttempt = false;
+            }
+        } else {
+            // During reset/retry, suppress destroyPlayer callbacks until play resumes.
+            m_fields->gameplayHasStarted = false;
         }
     }
 
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        if (player == m_player1 && m_uiLayer && m_fields->gameplayHasStarted) {
-            showImage(m_uiLayer, imageForPercent(getCurrentPercent()));
+        bool shouldShowQuote =
+            player == m_player1 &&
+            m_fields->gameplayHasStarted &&
+            !m_fields->quoteShownThisAttempt;
+
+        if (shouldShowQuote) {
+            // Mark first so any extra callbacks from the same death cannot duplicate it.
+            m_fields->quoteShownThisAttempt = true;
         }
+
         PlayLayer::destroyPlayer(player, object);
+
+        if (shouldShowQuote) {
+            // Use the running scene rather than m_uiLayer: the UI layer may be cleared
+            // during the death/reset flow, which can make the image disappear instantly.
+            auto scene = CCDirector::sharedDirector()->getRunningScene();
+            showImage(scene, imageForPercent(getCurrentPercent()));
+        }
     }
 
     void levelComplete() {
-        if (m_uiLayer) showImage(m_uiLayer, CCSprite::create("level_complete_gg.png"_spr));
+        auto scene = CCDirector::sharedDirector()->getRunningScene();
+        if (scene) {
+            showImage(scene, CCSprite::create("level_complete_gg.png"_spr));
+        }
         PlayLayer::levelComplete();
     }
 };
