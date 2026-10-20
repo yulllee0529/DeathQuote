@@ -40,15 +40,17 @@ namespace {
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
-    float m_deathQuoteElapsed = 0.f;
+    struct Fields {
+        float deathQuoteElapsed = 0.f;
+    };
 
     void update(float dt) {
         PlayLayer::update(dt);
-        m_deathQuoteElapsed += dt;
+        m_fields->deathQuoteElapsed += dt;
     }
 
     void resetLevel() {
-        m_deathQuoteElapsed = 0.f;
+        m_fields->deathQuoteElapsed = 0.f;
         PlayLayer::resetLevel();
     }
 
@@ -59,7 +61,7 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         }
 
         int percent = getCurrentPercent();
-        bool pastStartDelay = m_deathQuoteElapsed >= 0.1f;
+        bool pastStartDelay = m_fields->deathQuoteElapsed >= 0.1f;
         PlayLayer::destroyPlayer(player, object);
 
         // Suppress the startup/reset callback for the first 0.1 seconds.
