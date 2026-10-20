@@ -49,6 +49,10 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         int percent = getCurrentPercent();
         PlayLayer::destroyPlayer(player, object);
 
+        // Starting/restarting an attempt can call destroyPlayer at 0%.
+        // Only show a quote after the run has actually progressed.
+        if (percent <= 0) return;
+
         if (m_uiLayer) showImage(m_uiLayer, imageForPercent(percent));
     }
 
