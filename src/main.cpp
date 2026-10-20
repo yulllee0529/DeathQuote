@@ -57,15 +57,13 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
 
         int percent = getCurrentPercent();
         bool pastStartDelay = m_fields->deathQuoteElapsed >= 0.1f;
+        // Show before the original death handler changes the player/UI state.
+        // The timer is only a startup guard; percent 0 is still a valid death.
+        if (pastStartDelay && m_uiLayer) {
+            showImage(m_uiLayer, imageForPercent(percent));
+        }
+
         PlayLayer::destroyPlayer(player, object);
-
-        // Suppress only callbacks during the first 0.1 seconds after this
-        // PlayLayer is created. Do not reset this timer on each level reset,
-        // because resetLevel can also be called as part of death handling.
-        // Do not gate on integer percent: real deaths at 0.1% can round to 0%.
-        if (!pastStartDelay) return;
-
-        if (m_uiLayer) showImage(m_uiLayer, imageForPercent(percent));
     }
 
     void levelComplete() {
