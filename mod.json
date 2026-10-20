@@ -1,8 +1,8 @@
 {
   "geode": "5.11.2",
   "gd": {
-    "android": "2.209",
-    "win": "2.209"
+    "android": "*",
+    "win": "*"
   },
   "id": "yulllee0529.deathquote",
   "name": "Death Quote",
@@ -10,9 +10,5 @@
   "developer": "yulllee0529",
   "description": "Funny messages when you die",
   "repository": "https://github.com/yulllee0529/DeathQuote",
-  "tags": [
-    "gameplay",
-    "joke",
-    "interface"
-  ]
+  "tags": ["gameplay", "joke", "interface"]
 }
