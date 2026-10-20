@@ -46,7 +46,7 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         PlayLayer::levelComplete();
 
         if (!m_uiLayer) return;
-        auto label = CCLabelBMFont::create("GG", "bigFont.fnt");
+        auto label = CCLabelTTF::create("GG", "Arial", 36.0f);
         if (!label) return;
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
