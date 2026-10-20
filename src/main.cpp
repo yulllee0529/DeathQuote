@@ -40,8 +40,26 @@ namespace {
 }
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
+    struct Fields {
+        bool gameplayHasStarted = false;
+    };
+
+    void update(float dt) {
+        PlayLayer::update(dt);
+        // Only arm death quotes after gameplay time advances.
+        if (m_gameState.m_levelTime > 0.f) {
+            m_fields->gameplayHasStarted = true;
+        }
+    }
+
+    void resetLevel() {
+        // Suppress destroyPlayer calls made while the attempt is being reset.
+        m_fields->gameplayHasStarted = false;
+        PlayLayer::resetLevel();
+    }
+
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        if (player == m_player1 && m_uiLayer && m_gameState.m_levelTime > 0.f) {
+        if (player == m_player1 && m_uiLayer && m_fields->gameplayHasStarted) {
             showImage(m_uiLayer, imageForPercent(getCurrentPercent()));
         }
         PlayLayer::destroyPlayer(player, object);
