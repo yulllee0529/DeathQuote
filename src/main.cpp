@@ -49,11 +49,6 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         m_fields->deathQuoteElapsed += dt;
     }
 
-    void resetLevel() {
-        m_fields->deathQuoteElapsed = 0.f;
-        PlayLayer::resetLevel();
-    }
-
     void destroyPlayer(PlayerObject* player, GameObject* object) {
         if (player != m_player1) {
             PlayLayer::destroyPlayer(player, object);
@@ -64,7 +59,9 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         bool pastStartDelay = m_fields->deathQuoteElapsed >= 0.1f;
         PlayLayer::destroyPlayer(player, object);
 
-        // Suppress the startup/reset callback for the first 0.1 seconds.
+        // Suppress only callbacks during the first 0.1 seconds after this
+        // PlayLayer is created. Do not reset this timer on each level reset,
+        // because resetLevel can also be called as part of death handling.
         // Do not gate on integer percent: real deaths at 0.1% can round to 0%.
         if (!pastStartDelay) return;
 
