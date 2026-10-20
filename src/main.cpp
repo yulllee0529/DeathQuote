@@ -41,12 +41,24 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     struct Fields {
-        float deathQuoteElapsed = 0.f;
+        bool deathQuoteHasStarted = false;
     };
+
+    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
+        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
+        m_fields->deathQuoteHasStarted = false;
+        return true;
+    }
 
     void update(float dt) {
         PlayLayer::update(dt);
-        m_fields->deathQuoteElapsed += dt;
+        // Wait for the opening countdown/start animation to finish.
+        if (m_player1 && !m_player1->m_isDead) {
+            auto layer = this;
+            if (layer->m_gameState.m_levelTime > 0.f) {
+                m_fields->deathQuoteHasStarted = true;
+            }
+        }
     }
 
     void destroyPlayer(PlayerObject* player, GameObject* object) {
@@ -56,18 +68,15 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         }
 
         int percent = getCurrentPercent();
-        bool pastStartDelay = m_fields->deathQuoteElapsed >= 0.1f;
-        // Show before the original death handler changes the player/UI state.
-        // The timer is only a startup guard; percent 0 is still a valid death.
-        if (pastStartDelay && m_uiLayer) {
+        bool showQuote = m_fields->deathQuoteHasStarted;
+        if (showQuote && m_uiLayer) {
             showImage(m_uiLayer, imageForPercent(percent));
         }
-
         PlayLayer::destroyPlayer(player, object);
     }
 
     void levelComplete() {
-        PlayLayer::levelComplete();
         if (m_uiLayer) showImage(m_uiLayer, CCSprite::create("level_complete_gg.png"_spr));
+        PlayLayer::levelComplete();
     }
 };
