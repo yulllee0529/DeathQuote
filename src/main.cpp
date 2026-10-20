@@ -45,35 +45,21 @@ namespace {
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     struct Fields {
         bool gameplayHasStarted = false;
-        bool quoteShownThisAttempt = false;
     };
 
     void update(float dt) {
         PlayLayer::update(dt);
-
-        // Don't clear this flag during death/retry transitions; levelTime can briefly be zero.
+        // Keep this sticky through death/retry transitions; levelTime may briefly reset.
         if (m_gameState.m_levelTime > 0.f) {
             m_fields->gameplayHasStarted = true;
         }
     }
 
-    void resetLevel() {
-        PlayLayer::resetLevel();
-        // A new attempt begins after resetLevel completes.
-        m_fields->gameplayHasStarted = false;
-        m_fields->quoteShownThisAttempt = false;
-    }
-
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Add the sprite BEFORE the original death handler changes/clears the UI.
-        if (player == m_player1 &&
-            m_uiLayer &&
-            m_fields->gameplayHasStarted &&
-            !m_fields->quoteShownThisAttempt) {
-            m_fields->quoteShownThisAttempt = true;
+        // Display before the original handler can clear or replace the UI layer.
+        if (player == m_player1 && m_uiLayer && m_fields->gameplayHasStarted) {
             showImage(m_uiLayer, imageForPercent(getCurrentPercent()));
         }
-
         PlayLayer::destroyPlayer(player, object);
     }
 
