@@ -4,22 +4,18 @@
 using namespace geode::prelude;
 
 namespace {
-    const char* imageForPercent(int percent) {
-        if (percent <= 10) return "death_0_10.png";
-        if (percent <= 30) return "death_11_30.png";
-        if (percent <= 50) return "death_31_50.png";
-        if (percent <= 80) return "death_51_80.png";
-        if (percent <= 90) return "death_81_90.png";
-        return "death_91_99.png";
+    CCSprite* imageForPercent(int percent) {
+        if (percent <= 10) return CCSprite::create("death_0_10.png"_spr);
+        if (percent <= 30) return CCSprite::create("death_11_30.png"_spr);
+        if (percent <= 50) return CCSprite::create("death_31_50.png"_spr);
+        if (percent <= 80) return CCSprite::create("death_51_80.png"_spr);
+        if (percent <= 90) return CCSprite::create("death_81_90.png"_spr);
+        return CCSprite::create("death_91_99.png"_spr);
     }
 
-    void showImage(CCNode* parent, const char* filename) {
-        if (!parent) return;
-
-        auto path = Mod::get()->getResourcesDir() / filename;
-        auto sprite = CCSprite::create(path.string().c_str());
-        if (!sprite) {
-            log::error("Death Quote: failed to load image at '{}'", path.string());
+    void showImage(CCNode* parent, CCSprite* sprite) {
+        if (!parent || !sprite) {
+            log::error("Death Quote: could not create quote sprite");
             return;
         }
 
@@ -45,8 +41,6 @@ namespace {
 
 class $modify(DeathQuotePlayLayer, PlayLayer) {
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Only react to the main player's actual death callback.
-        // Ignore callbacks for other players/objects.
         if (player != m_player1) {
             PlayLayer::destroyPlayer(player, object);
             return;
@@ -55,12 +49,11 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
         int percent = getCurrentPercent();
         PlayLayer::destroyPlayer(player, object);
 
-        if (!m_uiLayer) return;
-        showImage(m_uiLayer, imageForPercent(percent));
+        if (m_uiLayer) showImage(m_uiLayer, imageForPercent(percent));
     }
 
     void levelComplete() {
         PlayLayer::levelComplete();
-        if (m_uiLayer) showImage(m_uiLayer, "level_complete_gg.png");
+        if (m_uiLayer) showImage(m_uiLayer, CCSprite::create("level_complete_gg.png"_spr));
     }
 };

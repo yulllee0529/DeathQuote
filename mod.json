@@ -6,9 +6,14 @@
   },
   "id": "yulllee0529.deathquote",
   "name": "Death Quote",
-  "version": "v1.0.0",
+  "version": "v1.0.1",
   "developer": "yulllee0529",
   "description": "Funny messages when you die",
   "repository": "https://github.com/yulllee0529/DeathQuote",
-  "tags": ["gameplay", "joke", "interface"]
+  "tags": ["gameplay", "joke", "interface"],
+  "resources": {
+    "sprites": [
+      "resources/*.png"
+    ]
+  }
 }
