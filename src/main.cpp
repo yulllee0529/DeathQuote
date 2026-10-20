@@ -13,32 +13,56 @@ namespace {
         return CCSprite::create("death_91_99.png"_spr);
     }
 
-    void showImage(CCNode* parent, CCSprite* sprite) {
-        if (!parent || !sprite) {
-            log::error("Death Quote: image or UI layer is null");
+    void showImage(CCNode* parent, int percent, bool completed = false) {
+        if (!parent) {
+            log::error("Death Quote: no scene available to display message");
             return;
         }
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
-        auto size = sprite->getContentSize();
-        if (size.width <= 0.f || size.height <= 0.f) {
-            log::error("Death Quote: image has zero size");
-            return;
+        CCSprite* sprite = completed
+            ? CCSprite::create("level_complete_gg.png"_spr)
+            : imageForPercent(percent);
+
+        if (sprite) {
+            auto size = sprite->getContentSize();
+            if (size.width > 0.f && size.height > 0.f) {
+                float scale = std::min((winSize.width * 0.78f) / size.width,
+                                       (winSize.height * 0.30f) / size.height);
+                sprite->setScale(scale);
+                sprite->setPosition({winSize.width / 2.f, winSize.height / 2.f});
+                sprite->setZOrder(10000);
+                parent->addChild(sprite, 10000);
+                sprite->runAction(CCSequence::create(
+                    CCDelayTime::create(1.1f),
+                    CCFadeOut::create(0.35f),
+                    CCRemoveSelf::create(),
+                    nullptr
+                ));
+                log::info("Death Quote: displayed image for {}%", percent);
+                return;
+            }
+            log::error("Death Quote: image loaded with invalid size");
+        } else {
+            log::error("Death Quote: image asset failed to load");
         }
 
-        float scale = std::min((winSize.width * 0.78f) / size.width,
-                               (winSize.height * 0.30f) / size.height);
-        sprite->setScale(scale);
-        sprite->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
-        sprite->setZOrder(10000);
-        parent->addChild(sprite, 10000);
-
-        sprite->runAction(CCSequence::create(
-            CCDelayTime::create(1.1f),
-            CCFadeOut::create(0.35f),
-            CCRemoveSelf::create(),
-            nullptr
-        ));
+        // Visible text fallback: this also confirms the death hook and scene placement work.
+        auto label = CCLabelTTF::create(
+            completed ? "LEVEL COMPLETE!" : fmt::format("YOU DIED AT {}%", percent).c_str(),
+            "Arial", 30.f
+        );
+        if (label) {
+            label->setPosition({winSize.width / 2.f, winSize.height / 2.f});
+            label->setZOrder(10001);
+            parent->addChild(label, 10001);
+            label->runAction(CCSequence::create(
+                CCDelayTime::create(1.1f),
+                CCFadeOut::create(0.35f),
+                CCRemoveSelf::create(),
+                nullptr
+            ));
+        }
     }
 }
 
@@ -49,24 +73,26 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
 
     void update(float dt) {
         PlayLayer::update(dt);
-        // Keep this sticky through death/retry transitions; levelTime may briefly reset.
         if (m_gameState.m_levelTime > 0.f) {
             m_fields->gameplayHasStarted = true;
         }
     }
 
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        // Display before the original handler can clear or replace the UI layer.
-        if (player == m_player1 && m_uiLayer && m_fields->gameplayHasStarted) {
-            showImage(m_uiLayer, imageForPercent(getCurrentPercent()));
-        }
+        bool show = player == m_player1 && m_fields->gameplayHasStarted;
+        int percent = show ? getCurrentPercent() : 0;
+
         PlayLayer::destroyPlayer(player, object);
+
+        if (show) {
+            auto scene = CCDirector::sharedDirector()->getRunningScene();
+            showImage(scene, percent);
+        }
     }
 
     void levelComplete() {
-        if (m_uiLayer) {
-            showImage(m_uiLayer, CCSprite::create("level_complete_gg.png"_spr));
-        }
+        auto scene = CCDirector::sharedDirector()->getRunningScene();
+        showImage(scene, getCurrentPercent(), true);
         PlayLayer::levelComplete();
     }
 };
