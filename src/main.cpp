@@ -46,16 +46,11 @@ class $modify(DeathQuotePlayLayer, PlayLayer) {
 
     void update(float dt) {
         PlayLayer::update(dt);
-        // Only arm death quotes after gameplay time advances.
+        // Remember that the level has genuinely started. Do not clear this in resetLevel:
+        // resetLevel can also be part of the death/retry flow.
         if (m_gameState.m_levelTime > 0.f) {
             m_fields->gameplayHasStarted = true;
         }
-    }
-
-    void resetLevel() {
-        // Suppress destroyPlayer calls made while the attempt is being reset.
-        m_fields->gameplayHasStarted = false;
-        PlayLayer::resetLevel();
     }
 
     void destroyPlayer(PlayerObject* player, GameObject* object) {
