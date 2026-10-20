@@ -16,17 +16,19 @@ namespace {
     void showImage(CCNode* parent, const char* filename) {
         if (!parent) return;
 
-        auto sprite = CCSprite::create(filename);
+        auto path = Mod::get()->getResourcesDir() / "Resources" / filename;
+        auto sprite = CCSprite::create(path.string().c_str());
         if (!sprite) {
-            log::error("Death Quote: failed to load image '{}'", filename);
+            log::error("Death Quote: failed to load image at '{}'", path.string());
             return;
         }
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
-        float maxWidth = winSize.width * 0.78f;
-        float maxHeight = winSize.height * 0.30f;
-        float scale = std::min(maxWidth / sprite->getContentSize().width,
-                               maxHeight / sprite->getContentSize().height);
+        auto size = sprite->getContentSize();
+        if (size.width <= 0.f || size.height <= 0.f) return;
+
+        float scale = std::min((winSize.width * 0.78f) / size.width,
+                               (winSize.height * 0.30f) / size.height);
         sprite->setScale(scale);
         sprite->setPosition({winSize.width / 2.0f, winSize.height / 2.0f});
         sprite->setZOrder(10000);
