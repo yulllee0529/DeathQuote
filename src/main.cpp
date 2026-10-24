@@ -1,83 +1,53 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <random>
 
 using namespace geode::prelude;
 
 namespace {
-    CCSprite* imageForPercent(int percent) {
-        if (percent <= 10) return CCSprite::create("death_0_10.png"_spr);
-        if (percent <= 30) return CCSprite::create("death_11_30.png"_spr);
-        if (percent <= 50) return CCSprite::create("death_31_50.png"_spr);
-        if (percent <= 80) return CCSprite::create("death_51_80.png"_spr);
-        if (percent <= 90) return CCSprite::create("death_81_90.png"_spr);
-        return CCSprite::create("death_91_99.png"_spr);
+    std::mt19937& randomEngine() {
+        static std::mt19937 engine{std::random_device{}()};
+        return engine;
     }
 
-    void showImage(CCNode* parent, int percent, bool completed = false) {
-        if (!parent) {
-            log::error("Death Quote: display parent is null");
-            return;
+    int randomInt(int low, int high) {
+        return std::uniform_int_distribution<int>(low, high)(randomEngine());
+    }
+
+    float randomFloat(float low, float high) {
+        return std::uniform_real_distribution<float>(low, high)(randomEngine());
+    }
+
+    void randomizeLoadedObjects(PlayLayer* layer) {
+        if (!layer || !layer->m_objects) return;
+
+        int count = 0;
+        for (auto* object : CCArrayExt<GameObject*>(layer->m_objects)) {
+            if (!object) continue;
+
+            // Prototype pass: randomize common visual properties on loaded objects.
+            // Type conversion and trigger-data mutation need a serialized-level
+            // transformation pass before the game creates these objects.
+            object->setRotation(static_cast<float>(randomInt(0, 359)));
+            object->setScale(randomFloat(0.35f, 1.8f));
+            object->setOpacity(static_cast<GLubyte>(randomInt(35, 255)));
+
+            // An invisible object can still collide, which is part of the chaos.
+            if (randomInt(0, 1) == 0) object->setVisible(false);
+
+            ++count;
         }
 
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        CCSprite* sprite = completed
-            ? CCSprite::create("level_complete_gg.png"_spr)
-            : imageForPercent(percent);
-
-        if (sprite) {
-            auto size = sprite->getContentSize();
-            if (size.width > 0.f && size.height > 0.f) {
-                float scale = std::min((winSize.width * 0.78f) / size.width,
-                                       (winSize.height * 0.30f) / size.height);
-                sprite->setScale(scale);
-                sprite->setPosition({winSize.width / 2.f, winSize.height / 2.f});
-                parent->addChild(sprite, 10000);
-                sprite->runAction(CCSequence::create(
-                    CCDelayTime::create(1.1f),
-                    CCFadeOut::create(0.35f),
-                    CCRemoveSelf::create(),
-                    nullptr
-                ));
-                log::info("Death Quote: image displayed, percent={}, completed={}", percent, completed);
-                return;
-            }
-            log::error("Death Quote: loaded image has invalid dimensions");
-        } else {
-            log::error("Death Quote: image asset failed to load");
-        }
-
-        auto label = CCLabelTTF::create(
-            completed ? "LEVEL COMPLETE!" : fmt::format("YOU DIED AT {}%", percent).c_str(),
-            "Arial", 30.f
-        );
-        if (label) {
-            label->setPosition({winSize.width / 2.f, winSize.height / 2.f});
-            parent->addChild(label, 10001);
-            label->runAction(CCSequence::create(
-                CCDelayTime::create(1.1f),
-                CCFadeOut::create(0.35f),
-                CCRemoveSelf::create(),
-                nullptr
-            ));
-            log::info("Death Quote: fallback text displayed");
-        } else {
-            log::error("Death Quote: failed to create fallback label");
-        }
+        log::info("Random Everything: randomized visual properties on {} loaded objects", count);
+        log::warn("Random Everything prototype: object-type and trigger conversion is not implemented yet.");
     }
 }
 
-class $modify(DeathQuotePlayLayer, PlayLayer) {
-    void destroyPlayer(PlayerObject* player, GameObject* object) {
-        int percent = getCurrentPercent();
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-        log::info("Death Quote: destroyPlayer hook called at {}%", percent);
-        showImage(static_cast<CCNode*>(scene), percent);
-        PlayLayer::destroyPlayer(player, object);
-    }
-
-    void levelComplete() {
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-        showImage(static_cast<CCNode*>(scene), getCurrentPercent(), true);
-        PlayLayer::levelComplete();
+class $modify(RandomEverythingPlayLayer, PlayLayer) {
+    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
+        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
+        // A fresh random roll occurs every time a new PlayLayer is initialized.
+        randomizeLoadedObjects(this);
+        return true;
     }
 };
