@@ -2,9 +2,9 @@ name: Build Geode mod
 
 on:
   push:
-    branches: [main]
+    branches: [main, random-everything]
   pull_request:
-    branches: [main]
+    branches: [main, random-everything]
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,6 @@ jobs:
       - name: Upload .geode package
         uses: actions/upload-artifact@v4
         with:
-          name: DeathQuote-Android64
+          name: RandomEverything-Android64
           path: ${{ steps.build.outputs.build-output }}/*.geode
           if-no-files-found: error
