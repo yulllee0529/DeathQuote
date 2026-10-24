@@ -1,6 +1,10 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <algorithm>
 #include <random>
+#include <string>
+#include <string_view>
+#include <vector>
 
 using namespace geode::prelude;
 
@@ -10,44 +14,86 @@ namespace {
         return engine;
     }
 
-    int randomInt(int low, int high) {
-        return std::uniform_int_distribution<int>(low, high)(randomEngine());
+    // A conservative pool of common solid/block object IDs. Do not put triggers,
+    // portals, pads, orbs, or other objects with special gameplay data in this pool.
+    constexpr int kBlockIDs[] = {
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+    };
+
+    int randomBlockID(int originalID) {
+        std::vector<int> choices;
+        for (int id : kBlockIDs) {
+            if (id != originalID) choices.push_back(id);
+        }
+        if (choices.empty()) return originalID;
+        std::uniform_int_distribution<size_t> dist(0, choices.size() - 1);
+        return choices[dist(randomEngine())];
     }
 
-    float randomFloat(float low, float high) {
-        return std::uniform_real_distribution<float>(low, high)(randomEngine());
+    bool isBlockID(int id) {
+        return std::find(std::begin(kBlockIDs), std::end(kBlockIDs), id) != std::end(kBlockIDs);
     }
 
-    void randomizeLoadedObjects(PlayLayer* layer) {
-        if (!layer || !layer->m_objects) return;
+    // GD's object setup format is comma-separated key/value pairs and semicolon-
+    // separated objects. Key "1" is the object ID. Transform the setup BEFORE
+    // the game creates objects so this changes the actual object type, not just
+    // the rotation/scale of an already-created object.
+    std::string randomizeBlockIDs(std::string_view setup, int& changed) {
+        std::string output;
+        output.reserve(setup.size());
+        size_t objectStart = 0;
 
-        int count = 0;
-        for (auto* object : CCArrayExt<GameObject*>(layer->m_objects)) {
-            if (!object) continue;
+        while (objectStart < setup.size()) {
+            size_t objectEnd = setup.find(';', objectStart);
+            if (objectEnd == std::string_view::npos) objectEnd = setup.size();
 
-            // Prototype pass: randomize common visual properties on loaded objects.
-            // Type conversion and trigger-data mutation need a serialized-level
-            // transformation pass before the game creates these objects.
-            object->setRotation(static_cast<float>(randomInt(0, 359)));
-            object->setScale(randomFloat(0.35f, 1.8f));
-            object->setOpacity(static_cast<GLubyte>(randomInt(35, 255)));
+            std::string object(setup.substr(objectStart, objectEnd - objectStart));
+            std::vector<std::string> fields;
+            size_t fieldStart = 0;
+            while (fieldStart <= object.size()) {
+                size_t fieldEnd = object.find(',', fieldStart);
+                if (fieldEnd == std::string::npos) fieldEnd = object.size();
+                fields.emplace_back(object.substr(fieldStart, fieldEnd - fieldStart));
+                if (fieldEnd == object.size()) break;
+                fieldStart = fieldEnd + 1;
+            }
 
-            // An invisible object can still collide, which is part of the chaos.
-            if (randomInt(0, 1) == 0) object->setVisible(false);
+            // Only change known common block IDs. Other objects—including triggers,
+            // portals and orbs—are preserved to avoid corrupting their special data.
+            for (size_t i = 0; i + 1 < fields.size(); i += 2) {
+                if (fields[i] != "1") continue;
 
-            ++count;
+                try {
+                    int id = std::stoi(fields[i + 1]);
+                    if (isBlockID(id)) {
+                        fields[i + 1] = std::to_string(randomBlockID(id));
+                        ++changed;
+                    }
+                } catch (...) {
+                    // Leave malformed/unrecognized object data unchanged.
+                }
+                break;
+            }
+
+            for (size_t i = 0; i < fields.size(); ++i) {
+                if (i) output.push_back(',');
+                output += fields[i];
+            }
+            if (objectEnd < setup.size()) output.push_back(';');
+            objectStart = objectEnd + 1;
         }
 
-        log::info("Random Everything: randomized visual properties on {} loaded objects", count);
-        log::warn("Random Everything prototype: object-type and trigger conversion is not implemented yet.");
+        return output;
     }
 }
 
 class $modify(RandomEverythingPlayLayer, PlayLayer) {
-    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
-        // A fresh random roll occurs every time a new PlayLayer is initialized.
-        randomizeLoadedObjects(this);
-        return true;
+    void createObjectsFromSetup(gd::string const& setup, bool p1, bool p2) {
+        int changed = 0;
+        auto randomized = randomizeBlockIDs(std::string_view(setup.c_str()), changed);
+
+        log::info("Random Everything: randomized {} block IDs before object creation", changed);
+        PlayLayer::createObjectsFromSetup(gd::string(randomized), p1, p2);
     }
 };
