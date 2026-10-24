@@ -1,19 +1,14 @@
 {
   "geode": "5.11.2",
   "gd": {
-    "android": "2.2081",
-    "win": "2.2081"
+    "android": "2.208",
+    "win": "2.208"
   },
-  "id": "yulllee0529.deathquote",
-  "name": "Death Quote",
-  "version": "v1.0.1",
+  "id": "yulllee0529.randomeverything",
+  "name": "Random Everything",
+  "version": "v0.1.0",
   "developer": "yulllee0529",
-  "description": "Funny messages when you die",
-  "repository": "https://github.com/yulllee0529/DeathQuote",
-  "tags": ["gameplay", "joke", "interface"],
-  "resources": {
-    "sprites": [
-      "resources/*.png"
-    ]
-  }
+  "description": "Randomizes gameplay object properties each time a level is loaded.",
+  "repository": "https://github.com/yulllee0529/DeathQuote/tree/random-everything",
+  "tags": ["gameplay", "enhancement"]
 }
