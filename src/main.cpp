@@ -16,10 +16,7 @@ namespace {
 
     // A conservative pool of common solid/block object IDs. Do not put triggers,
     // portals, pads, orbs, or other objects with special gameplay data in this pool.
-    constexpr int kBlockIDs[] = {
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
-    };
+    constexpr int kBlockIDs[] = { 1, 2, 3, 4, 5, 6, 7 };
 
     int randomBlockID(int originalID) {
         std::vector<int> choices;
