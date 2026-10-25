@@ -1,0 +1,28 @@
+name: Build DeathQuote Android64
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Android64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build Geode mod for Android ARM64
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          target: Android64
+          combine: true
+
+      - name: Upload Android64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeathQuote-Android64
+          path: build/**/*.geode
+          if-no-files-found: warn
