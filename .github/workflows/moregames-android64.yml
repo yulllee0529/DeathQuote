@@ -17,6 +17,11 @@ jobs:
           repository: iArtie/FreeGames
           ref: master
 
+      - name: Install compatible Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'ndk;27.2.12479018'
+
       - name: Build MoreGames for Android64
         id: build
         uses: geode-sdk/build-geode-mod@main
