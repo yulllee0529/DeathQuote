@@ -17,16 +17,28 @@ jobs:
           repository: iArtie/FreeGames
           ref: master
 
-      - name: Install compatible Android NDK
+      - name: Install Android NDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'ndk;27.2.12479018'
+
+      - name: Update metadata for current Geode SDK
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("mod.json")
+          data = json.loads(p.read_text())
+          data["geode"] = "5.11.2"
+          data["gd"]["android"] = "2.2081"
+          p.write_text(json.dumps(data, indent=2) + "\n")
+          PY
 
       - name: Build MoreGames for Android64
         id: build
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: given
+          sdk: latest
           android-ndk-version: 27.2.12479018
           target: Android64
           combine: true
